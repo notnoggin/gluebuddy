@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
+  #hit { height: 100%; display: flex; align-items: flex-start; justify-content: center; }
+  #pill {
+    display: none;
+    margin-top: 5px;
+    height: 18px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: rgba(28, 28, 30, 0.92);
+    color: #fff;
+    font: 500 11px/18px Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+  #pill.on { display: block; }
+</style>
+</head>
+<body>
+  <div id="hit"><div id="pill"></div></div>
+  <script>
+    const { ipcRenderer } = require('electron');
+    const pill = document.getElementById('pill');
+    document.body.addEventListener('mouseenter', () => ipcRenderer.send('notch-enter'));
+    document.addEventListener('dragover', event => event.preventDefault());
+    document.addEventListener('drop', event => {
+      event.preventDefault();
+      const paths = [...event.dataTransfer.files].map(file => file.path).filter(Boolean);
+      if (paths.length) ipcRenderer.send('notch-drop', paths);
+    });
+    ipcRenderer.on('peek', (_event, info) => {
+      if (!info || !info.count) { pill.className = ''; pill.textContent = ''; return; }
+      pill.className = 'on';
+      pill.textContent = info.count === 1 ? '1 waiting' : info.count + ' waiting';
+    });
+  </script>
+</body>
+</html>

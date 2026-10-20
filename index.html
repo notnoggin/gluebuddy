@@ -1,70 +1,464 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><title>Gluebuddy</title>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gluebuddy</title>
 <style>
-  @font-face { font-family: Inter; src: url(fonts/inter.woff2) format('woff2'); font-weight: 100 900; }
-  @font-face { font-family: 'JetBrains Mono'; src: url(fonts/jetbrains-mono.woff2) format('woff2'); font-weight: 100 800; }
-  :root { --panel: #0c0c0c; --line: #202020; --tx: #f3f3f3; --mut: #858585; --or: #ff6a13; }
+  @font-face { font-family: Inter; src: url(fonts/inter.woff2) format('woff2'); font-weight: 100 900; font-display: swap; }
+  @font-face { font-family: "JetBrains Mono"; src: url(fonts/jetbrains-mono.woff2) format('woff2'); font-weight: 100 800; font-display: swap; }
+
+  :root {
+    --bg: #f5f5f7;
+    --card: #ffffff;
+    --ink: #1d1d1f;
+    --secondary: #6e6e73;
+    --tertiary: #86868b;
+    --line: rgba(0, 0, 0, 0.08);
+    --fill: rgba(0, 0, 0, 0.05);
+    --blue: #0071e3;
+    --shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-hover: 0 0 0 0.5px rgba(0, 0, 0, 0.08), 0 10px 28px rgba(0, 0, 0, 0.06);
+    color-scheme: light;
+  }
+
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
-  body { display: flex; flex-direction: column; overflow: hidden; background: #000; color: var(--tx); font: 14px/1.5 Inter, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; }
-  button { font-family: inherit; }
-  button:focus-visible, #box:focus-visible { outline: 2px solid var(--or); outline-offset: 2px; }
+  body {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--ink);
+    font: 14px/1.45 Inter, "Segoe UI Variable Text", "Segoe UI", sans-serif;
+    letter-spacing: -0.011em;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  button, input, textarea { font-family: inherit; letter-spacing: inherit; color: inherit; }
+  button { cursor: pointer; }
+  ::selection { background: rgba(0, 113, 227, 0.18); }
+  [hidden] { display: none !important; }
+  button:focus-visible, .search input:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
+  }
 
-  #bar { flex: none; height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 16px; -webkit-app-region: drag; }
-  #bar svg { width: 20px; height: 20px; }
-  #bar b { font-size: 13px; font-weight: 600; letter-spacing: -.01em; }
+  #bar {
+    flex: none;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px 0 18px;
+    -webkit-app-region: drag;
+  }
+  body.history #bar { padding-right: 148px; }
+  .mark { width: 18px; height: 18px; display: block; flex: none; }
+  .word { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; }
+  .keys {
+    color: var(--tertiary);
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 6px;
+    padding: 2px 6px;
+  }
+  .bar-actions { margin-left: auto; display: flex; align-items: center; gap: 4px; -webkit-app-region: no-drag; }
+  .bar-actions button {
+    border: 0;
+    background: transparent;
+    color: var(--secondary);
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .bar-actions button:hover { background: var(--fill); color: var(--ink); }
+  #close { width: 28px; padding: 0; font-size: 18px; line-height: 1; font-weight: 400; }
+  body.history #close, body.history .keys, body.history #history { display: none; }
+  body.history textarea { height: 56px; }
+  body.history textarea.short { height: 40px; }
+  body.history #steps { max-height: 96px; }
 
-  #hero { flex: none; padding: 14px 20px 0; }
-  h1 { margin: 0; font-size: 38px; line-height: 1.05; font-weight: 700; letter-spacing: -.045em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #sub { margin: 6px 0 0; color: var(--mut); }
+  #shelf {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 20px 8px;
+    overflow-x: auto;
+    -webkit-app-region: no-drag;
+  }
+  #shelf::-webkit-scrollbar { display: none; }
+  #shelf .label { flex: none; color: var(--tertiary); font-size: 11px; font-weight: 600; }
+  .holding {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 220px;
+    height: 28px;
+    padding: 0 4px 0 10px;
+    background: #fff;
+    border-radius: 999px;
+    box-shadow: var(--shadow);
+    font-size: 12px;
+    font-weight: 550;
+  }
+  .holding b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+  .holding button, .mini {
+    border: 0;
+    background: transparent;
+    color: var(--secondary);
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .holding button:hover, .mini:hover { background: var(--fill); color: var(--ink); }
+  #shelf.over { outline: 1.5px dashed rgba(0, 0, 0, 0.28); outline-offset: -4px; border-radius: 12px; }
 
-  #chips { flex: none; display: flex; gap: 6px; padding: 16px 20px 0; overflow-x: auto; }
-  #chips::-webkit-scrollbar { display: none; }
-  .chip { flex: none; background: none; color: var(--mut); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 13px; cursor: pointer; }
-  .chip:hover { color: var(--tx); border-color: #3a3a3a; }
-  .chip.on { background: var(--tx); border-color: var(--tx); color: #000; font-weight: 600; }
-  .chip i { font-style: normal; opacity: .55; margin-left: 5px; }
+  #stage { flex: 1; min-height: 0; display: flex; }
+  #rail { display: none; }
+  #maincol { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+  body.history #stage { display: grid; grid-template-columns: 200px 1fr; }
+  body.history #rail {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px 8px 20px 16px;
+    overflow-y: auto;
+  }
+  #rail button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: var(--secondary);
+    height: 32px;
+    padding: 0 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: left;
+  }
+  #rail button b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #rail button .n { margin-left: auto; color: var(--tertiary); font-variant-numeric: tabular-nums; font-size: 12px; }
+  #rail button.on { background: #fff; color: var(--ink); box-shadow: var(--shadow); }
+  #rail button.on b { font-weight: 600; }
 
-  #composer { flex: none; margin: 14px 20px 0; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; transition: border-color .15s; }
-  #composer:focus-within { border-color: #444; }
-  #box { display: block; width: 100%; height: 84px; resize: none; background: none; border: 0; outline: 0; color: var(--tx); padding: 12px 14px 4px; font: 14px/1.55 Inter, sans-serif; }
-  #box::placeholder { color: #5a5a5a; }
-  #composer .row { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px 8px 14px; }
-  .hint { color: var(--mut); font-size: 12px; }
-  #save { background: #fff; color: #000; border: 0; border-radius: 999px; padding: 7px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s; }
-  #save:hover { background: var(--or); }
+  #top { flex: none; padding: 2px 20px 0; -webkit-app-region: no-drag; }
+  .context-sub { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+  h1 {
+    margin: 0;
+    min-height: 1.08em;
+    font-size: 32px;
+    line-height: 1.08;
+    font-weight: 600;
+    letter-spacing: -0.035em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #sub { flex: 1; margin: 0; color: var(--secondary); font-size: 13px; line-height: 1.35; }
 
-  #list { flex: 1; overflow-y: auto; margin-top: 10px; padding: 0 20px 20px; }
-  ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-thumb { background: #1d1d1d; border-radius: 4px; }
-  .it { padding: 14px 0; border-top: 1px solid var(--line); }
-  .it:first-child { border-top: 0; }
-  .txt { margin: 0; white-space: pre-wrap; word-break: break-word; font: 14px/1.55 Inter, sans-serif; }
-  .txt.mono { font: 12.5px/1.6 'JetBrains Mono', Consolas, monospace; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
-  .txt.link { color: var(--or); }
-  .txt.clamp { max-height: 11em; overflow: hidden; -webkit-mask-image: linear-gradient(#000 65%, transparent); }
-  .it img { display: block; max-width: 100%; max-height: 240px; border-radius: 8px; cursor: zoom-in; }
-  .file b { display: block; font-weight: 600; }
-  .file span { color: var(--mut); font-size: 12px; word-break: break-all; }
-  .acts { display: flex; align-items: center; gap: 16px; margin-top: 10px; opacity: 0; transition: opacity .12s; }
-  .it:hover .acts, .it:focus-within .acts { opacity: 1; }
-  .acts button { background: none; border: 0; padding: 0; color: var(--mut); font-size: 12px; cursor: pointer; }
-  .acts button:hover { color: var(--tx); }
-  .tag { margin-left: auto; color: var(--mut); font-size: 12px; }
+  .seg { display: flex; padding: 2px; background: rgba(0, 0, 0, 0.06); border-radius: 9px; }
+  .seg button {
+    border: 0;
+    background: transparent;
+    color: var(--secondary);
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 550;
+    white-space: nowrap;
+  }
+  .seg button .n { margin-left: 4px; font-variant-numeric: tabular-nums; opacity: 0.7; font-weight: 500; }
+  .seg button.on {
+    background: #fff;
+    color: var(--ink);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 0 0 0.5px rgba(0, 0, 0, 0.04);
+  }
+  #status { margin-top: 16px; }
+  #status button { flex: 1; height: 28px; }
+  .scope { flex: none; }
+  .scope button { height: 24px; padding: 0 9px; }
+  body.history #scope { display: none; }
 
-  #empty { padding-top: 26px; }
-  #empty svg { width: 88px; height: 88px; margin-bottom: 14px; }
-  #empty h2 { margin: 0 0 4px; font-size: 22px; font-weight: 700; letter-spacing: -.03em; }
-  #empty p { margin: 0; color: var(--mut); max-width: 34ch; }
+  .kinds, .marks { display: flex; gap: 4px; margin-top: 10px; overflow-x: auto; }
+  .kinds::-webkit-scrollbar, .marks::-webkit-scrollbar { display: none; }
+  .kinds button, .marks button {
+    flex: none;
+    border: 0;
+    background: transparent;
+    color: var(--secondary);
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .kinds button.on, .marks button.on { background: #fff; color: var(--ink); box-shadow: var(--shadow); }
+  .kinds button .n { margin-left: 4px; color: var(--tertiary); font-variant-numeric: tabular-nums; }
+
+  #composer {
+    margin-top: 14px;
+    background: var(--card);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    padding: 6px 6px 8px;
+  }
+  #composer:focus-within { box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.14), 0 12px 32px rgba(0, 0, 0, 0.05); }
+  .modes { display: flex; gap: 2px; padding: 4px 6px 0; }
+  .modes button {
+    border: 0;
+    background: transparent;
+    color: var(--secondary);
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .modes button.on { background: var(--fill); color: var(--ink); font-weight: 600; }
+  .pane { padding: 4px 8px 0; }
+  textarea, .field {
+    display: block;
+    width: 100%;
+    border: 0;
+    outline: 0;
+    resize: none;
+    background: transparent;
+    padding: 8px 6px;
+    font-size: 15px;
+    line-height: 1.45;
+  }
+  textarea { height: 84px; }
+  textarea.short { height: 52px; }
+  #check-title { font-weight: 600; }
+  ::placeholder { color: #8e8e93; }
+  #steps { max-height: 140px; overflow-y: auto; }
+  .step-edit { display: flex; align-items: center; gap: 8px; padding: 0 6px; }
+  .step-edit .bullet { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid #c7c7cc; flex: none; }
+  .step-edit input { flex: 1; border: 0; outline: 0; background: transparent; height: 32px; font-size: 14px; min-width: 0; }
+  .icon-btn {
+    width: 22px; height: 22px; border: 0; border-radius: 6px; background: transparent;
+    color: var(--tertiary); font-size: 16px; line-height: 1; padding: 0;
+  }
+  .icon-btn:hover { background: var(--fill); color: var(--ink); }
+  #add-step {
+    margin: 2px 0 4px 28px; border: 0; background: transparent; color: var(--blue);
+    padding: 4px 6px; font-size: 13px; font-weight: 500;
+  }
+  .drop {
+    margin: 6px 6px 0;
+    border: 1.5px dashed rgba(0, 0, 0, 0.14);
+    border-radius: 12px;
+    padding: 16px 12px;
+    text-align: center;
+    color: var(--secondary);
+    font-size: 13px;
+  }
+  .drop.over, #composer.dropping { background: rgba(0, 0, 0, 0.03); }
+  .drop.over { border-color: rgba(0, 0, 0, 0.32); }
+  #browse { border: 0; background: transparent; color: var(--blue); padding: 0; font-size: 13px; font-weight: 500; }
+  #file-picks { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; text-align: left; }
+  .pick {
+    display: flex; align-items: center; gap: 8px; background: var(--bg);
+    border-radius: 8px; padding: 6px 8px; font-size: 12px;
+  }
+  .pick b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pick .icon-btn { margin-left: auto; }
+  .foot { display: flex; align-items: center; gap: 10px; padding: 4px 6px 0 12px; }
+  .hint { flex: 1; margin: 0; color: var(--secondary); font-size: 12px; line-height: 1.35; }
+  .foot-actions { display: flex; gap: 8px; flex: none; }
+  .ghost, #save { height: 32px; padding: 0 14px; border: 0; border-radius: 999px; font-size: 13px; font-weight: 600; }
+  .ghost { background: var(--fill); color: var(--ink); font-weight: 500; }
+  .ghost:hover { background: rgba(0, 0, 0, 0.08); }
+  .ghost.on { background: var(--ink); color: #fff; }
+  #save { background: var(--ink); color: #fff; }
+  #save:hover:not(:disabled) { background: #000; }
+  #save:disabled { background: #d2d2d7; color: #fff; cursor: default; }
+
+  .search { position: relative; margin-top: 12px; }
+  .search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--tertiary); }
+  .search input {
+    width: 100%; height: 36px; border: 0; border-radius: 10px; background: rgba(0, 0, 0, 0.05);
+    padding: 0 12px 0 32px; font-size: 13px; outline: none;
+  }
+  .search input:focus { background: rgba(0, 0, 0, 0.07); }
+
+  #list { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 20px 24px; -webkit-app-region: no-drag; }
+  ::-webkit-scrollbar { width: 10px; }
+  ::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.18); border-radius: 99px; border: 3px solid var(--bg); }
+
+  .group { margin: 18px 4px 0; font-size: 12px; font-weight: 600; color: var(--secondary); }
+  .card { background: var(--card); border-radius: 16px; padding: 14px 16px 10px; margin-top: 10px; box-shadow: var(--shadow); }
+  .card:hover { box-shadow: var(--shadow-hover); }
+  .card.done { opacity: 0.58; }
+  .card.done:hover { opacity: 0.9; }
+  .card.due { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.34), 0 1px 2px rgba(0, 0, 0, 0.04); }
+  .meta { display: flex; align-items: baseline; gap: 6px; color: var(--tertiary); font-size: 12px; font-weight: 500; }
+  .meta .kind { color: var(--secondary); font-weight: 600; }
+  .meta .mark { color: var(--ink); }
+  .meta .time { margin-left: auto; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .meta .time.due { color: var(--ink); font-weight: 600; }
+  .body { margin: 8px 0 0; font-size: 15px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
+  .body.mono {
+    font: 12.5px/1.55 "JetBrains Mono", Consolas, monospace;
+    letter-spacing: 0; background: var(--bg); border-radius: 10px; padding: 10px 12px;
+  }
+  .body.clamp { display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; }
+  .edit {
+    display: block; width: 100%; margin-top: 8px; border: 0; border-radius: 10px; background: var(--bg);
+    padding: 8px 10px; resize: vertical; min-height: 72px; font-size: 15px; line-height: 1.45;
+  }
+  .check {
+    display: flex; gap: 10px; align-items: flex-start; width: 100%; text-align: left;
+    border: 0; background: transparent; padding: 5px 0; font-size: 14px; line-height: 1.35;
+  }
+  .check .box {
+    width: 18px; height: 18px; margin-top: 1px; border-radius: 50%; border: 1.5px solid #c7c7cc;
+    flex: none; display: grid; place-items: center;
+  }
+  .check.on .box { background: var(--ink); border-color: var(--ink); }
+  .check.on .label { color: var(--tertiary); text-decoration: line-through; }
+  .checks { margin-top: 6px; }
+  .title { margin: 8px 0 0; font-size: 15px; font-weight: 600; letter-spacing: -0.015em; }
+  .linkline {
+    display: block; max-width: 100%; margin-top: 6px; padding: 0; border: 0; background: transparent;
+    color: var(--blue); font-size: 13px; font-weight: 500; text-align: left;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .thumbs { display: flex; gap: 8px; margin-top: 10px; overflow-x: auto; }
+  .shot {
+    display: block; width: 120px; height: 88px; object-fit: cover; border-radius: 10px; cursor: zoom-in; flex: none;
+    box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+  }
+  .file {
+    display: flex; align-items: center; gap: 10px; margin-top: 8px; text-align: left; width: 100%;
+    border: 0; background: var(--bg); border-radius: 12px; padding: 8px; cursor: pointer;
+  }
+  .file .glyph {
+    width: 36px; height: 36px; border-radius: 9px; background: #fff; display: grid; place-items: center; flex: none;
+  }
+  .file .name { min-width: 0; }
+  .file b, .file span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file b { font-size: 13px; font-weight: 600; }
+  .file span { color: var(--secondary); font-size: 12px; font-weight: 400; }
+  .missing { color: var(--tertiary); font-size: 12px; margin: 8px 0 0; }
+  .acts {
+    display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+    margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line);
+  }
+  .acts button {
+    border: 0; background: transparent; color: var(--secondary); height: 26px; padding: 0 8px;
+    border-radius: 7px; font-size: 12px; font-weight: 500;
+  }
+  .acts button:hover { background: var(--fill); color: var(--ink); }
+  .acts button.strong { color: var(--ink); font-weight: 600; }
+  .acts button.arm { color: var(--ink); font-weight: 600; }
+
+  #empty { min-height: 100%; display: flex; flex-direction: column; justify-content: center; padding: 8px 4px 40px; }
+  #empty .mark { width: 36px; height: 36px; }
+  #empty h2 { margin: 14px 0 6px; font-size: 20px; font-weight: 600; letter-spacing: -0.03em; }
+  #empty p { margin: 0; color: var(--secondary); font-size: 14px; line-height: 1.45; max-width: 36ch; }
+
+  #menu {
+    position: fixed; z-index: 30; min-width: 196px; padding: 4px;
+    background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(24px); border-radius: 12px;
+    box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.08), 0 16px 40px rgba(0, 0, 0, 0.14);
+  }
+  #menu button {
+    display: block; width: 100%; text-align: left; border: 0; background: transparent;
+    height: 32px; padding: 0 10px; border-radius: 8px; font-size: 13px;
+  }
+  #menu button:hover { background: rgba(0, 0, 0, 0.05); }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
-</style></head>
+</style>
+</head>
 <body>
-  <div id="bar"></div>
-  <div id="hero"><h1 id="app"></h1><p id="sub"></p></div>
-  <div id="chips"></div>
-  <div id="composer">
-    <textarea id="box" placeholder="Type or paste text, code or a link"></textarea>
-    <div class="row"><span class="hint">Enter saves. Shift+Enter adds a line.</span><button id="save"></button></div>
+  <header id="bar">
+    <svg class="mark" viewBox="0 0 32 32" aria-hidden="true">
+      <rect x="1" y="1" width="30" height="30" rx="9" fill="#1d1d1f"/>
+      <rect x="9" y="8" width="14" height="16" rx="3" fill="#f5f5f7"/>
+      <circle cx="20.2" cy="11.6" r="1.7" fill="#1d1d1f"/>
+    </svg>
+    <span class="word">Gluebuddy</span>
+    <span class="keys" id="keys"></span>
+    <div class="bar-actions">
+      <button type="button" id="history">History</button>
+      <button type="button" id="close" aria-label="Hide">×</button>
+    </div>
+  </header>
+
+  <div id="shelf" hidden></div>
+
+  <div id="stage">
+    <nav id="rail" aria-label="Apps"></nav>
+    <div id="maincol">
+      <div id="top">
+        <div class="context">
+          <h1 id="app"></h1>
+          <div class="context-sub">
+            <p id="sub"></p>
+            <div class="seg scope" id="scope" role="tablist" aria-label="Where to look"></div>
+          </div>
+        </div>
+        <div class="seg" id="status" role="tablist" aria-label="Status"></div>
+        <div class="kinds" id="kinds" role="tablist" aria-label="Kind"></div>
+
+        <section id="composer">
+          <div class="modes" role="tablist" aria-label="What to leave">
+            <button type="button" data-mode="note" class="on">Note</button>
+            <button type="button" data-mode="checklist">Checklist</button>
+            <button type="button" data-mode="link">Link</button>
+            <button type="button" data-mode="file">File</button>
+          </div>
+          <div class="marks" id="marks"></div>
+          <div class="pane" data-pane="note">
+            <textarea id="note" placeholder="What should be here when you come back?"></textarea>
+          </div>
+          <div class="pane" data-pane="checklist" hidden>
+            <input class="field" id="check-title" placeholder="Title">
+            <div id="steps"></div>
+            <button type="button" id="add-step">Add a step</button>
+          </div>
+          <div class="pane" data-pane="link" hidden>
+            <input class="field" id="url" placeholder="Paste a link" spellcheck="false">
+            <textarea class="short" id="link-note" placeholder="Add a message for this link"></textarea>
+          </div>
+          <div class="pane" data-pane="file" hidden>
+            <div class="drop" id="drop">
+              <div>Drop files here, or <button type="button" id="browse">browse</button></div>
+              <div id="file-picks"></div>
+            </div>
+            <textarea class="short" id="file-note" placeholder="Add a message for these files"></textarea>
+          </div>
+          <div class="foot">
+            <p class="hint" id="hint"></p>
+            <div class="foot-actions">
+              <button type="button" class="ghost" id="when">When</button>
+              <button type="button" id="save">Leave it here</button>
+            </div>
+          </div>
+        </section>
+
+        <div class="search">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <circle cx="7" cy="7" r="4.25" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M10.5 10.5L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <input id="q" placeholder="Search" aria-label="Search">
+        </div>
+      </div>
+      <div id="list"></div>
+    </div>
   </div>
-  <div id="list"></div>
+  <div id="menu" hidden role="menu"></div>
   <script src="renderer.js"></script>
-</body></html>
+</body>
+</html>

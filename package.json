@@ -1,21 +1,27 @@
 {
   "name": "gluebuddy",
   "productName": "Gluebuddy",
-  "version": "0.1.0",
-  "description": "Stick notes, links, code, images and files to any app. Find them when you're back.",
+  "version": "0.3.0",
+  "description": "Leave notes, checklists, links, and files on the app you're in. Pick them up when you come back.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/notnoggin/gluebuddy.git"
+  },
   "main": "main.js",
   "private": true,
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win"
+    "dist": "electron-builder --win",
+    "dist:mac": "electron-builder --mac"
   },
   "dependencies": { "active-win": "^8.2.1" },
   "devDependencies": { "electron": "^31.0.0" },
   "build": {
     "appId": "com.gluebuddy.app",
     "productName": "Gluebuddy",
-    "files": ["main.js", "index.html", "renderer.js", "icon.png", "tray.png", "fonts/**"],
+    "files": ["main.js", "logic.js", "index.html", "notch.html", "renderer.js", "icon.png", "tray.png", "fonts/**"],
     "asarUnpack": ["node_modules/active-win/**"],
-    "win": { "target": "nsis", "icon": "icon.ico" }
+    "win": { "target": "nsis", "icon": "icon.ico" },
+    "mac": { "target": "dmg", "icon": "icon.png", "category": "public.app-category.productivity" }
   }
 }
