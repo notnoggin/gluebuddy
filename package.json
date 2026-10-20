@@ -5,7 +5,7 @@
   "description": "Leave visual workflow pods (notes, checklists, links, files) on the app you are in. Fully offline, notch-first on Mac.",
   "repository": {
     "type": "git",
-    "url": "https://github.com/notnoggin/gluepod.git"
+    "url": "https://github.com/notnoggin/gluebuddy.git"
   },
   "main": "main.js",
   "private": true,
@@ -16,7 +16,7 @@
     "dist:mac": "electron-builder --mac"
   },
   "dependencies": { "active-win": "^8.2.1" },
-  "devDependencies": { "electron": "^31.0.0" },
+  "devDependencies": { "electron": "^31.0.0", "electron-builder": "^25.1.8" },
   "build": {
     "appId": "com.gluepod.app",
     "productName": "Gluepod",
