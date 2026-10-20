@@ -1,24 +1,25 @@
 {
-  "name": "gluebuddy",
-  "productName": "Gluebuddy",
+  "name": "gluepod",
+  "productName": "Gluepod",
   "version": "0.3.0",
-  "description": "Leave notes, checklists, links, and files on the app you're in. Pick them up when you come back.",
+  "description": "Leave visual workflow pods (notes, checklists, links, files) on the app you are in. Fully offline, notch-first on Mac.",
   "repository": {
     "type": "git",
-    "url": "https://github.com/notnoggin/gluebuddy.git"
+    "url": "https://github.com/notnoggin/gluepod.git"
   },
   "main": "main.js",
   "private": true,
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --win",
+    "dist:linux": "electron-builder --linux",
     "dist:mac": "electron-builder --mac"
   },
   "dependencies": { "active-win": "^8.2.1" },
   "devDependencies": { "electron": "^31.0.0" },
   "build": {
-    "appId": "com.gluebuddy.app",
-    "productName": "Gluebuddy",
+    "appId": "com.gluepod.app",
+    "productName": "Gluepod",
     "files": ["main.js", "logic.js", "index.html", "notch.html", "renderer.js", "icon.png", "tray.png", "fonts/**"],
     "asarUnpack": ["node_modules/active-win/**"],
     "win": { "target": "nsis", "icon": "icon.ico" },
